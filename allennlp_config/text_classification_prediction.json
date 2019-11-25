@@ -1,0 +1,50 @@
+{
+  "dataset_reader": {
+    "type": "classification_dataset_reader",
+     "token_indexers": {
+       "bert": {
+          "type": "bert-pretrained",
+          "pretrained_model": std.extVar("BERT_VOCAB"),
+          "do_lowercase": std.extVar("IS_LOWERCASE"),
+          "use_starting_offsets": true
+      }
+    }
+  },
+  "model": {
+    "type": "text_classifier",
+    "verbose_metrics": true,
+    "text_field_embedder": {
+        "allow_unmatched_keys": true,
+        "embedder_to_indexer_map": {
+            "bert": ["bert", "bert-offsets"]
+        },
+        "token_embedders": {
+            "bert": {
+                "type": "bert-pretrained",
+                "pretrained_model": std.extVar("BERT_WEIGHTS")
+            }
+        }
+    },
+      "text_encoder": {
+      "type": "lstm",
+      "input_size": 768,
+      "hidden_size": 200,
+      "num_layers": 2,
+      "dropout": 0.5,
+      "bidirectional": true
+    },
+    "classifier_feedforward": {
+      "input_dim": 400,
+      "num_layers": 1,
+      "hidden_dims": [200],
+      "activations": ["relu"],
+      "dropout": [0.5]
+    }
+  },
+  "iterator": {
+    "type": "bucket",
+    "sorting_keys": [["text", "num_tokens"]],
+    "batch_size": std.parseInt(std.extVar("GRAD_ACCUM_BATCH_SIZE")) / 2,
+    "cache_instances": true
+  },
+}

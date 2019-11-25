@@ -1,3 +1,4 @@
+import ast
 from typing import Dict, Optional, List, Any
 
 import torch
@@ -9,19 +10,12 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn import util
 from allennlp.training.metrics import CategoricalAccuracy, F1Measure
 from overrides import overrides
+from pytorch_toolbelt.losses import BinaryFocalLoss, FocalLoss
 
 
 @Model.register("text_classifier")
 class TextClassifier(Model):
-    """
-    Implements a basic text classifier:
-    1) Embed tokens using `text_field_embedder`
-    2) Seq2SeqEncoder, e.g. BiLSTM
-    3) Append the first and last encoder states
-    4) Final feedforward layer
 
-    Optimized with CrossEntropyLoss.  Evaluated with CategoricalAccuracy & F1.
-    """
     def __init__(self, vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
                  text_encoder: Seq2SeqEncoder,
@@ -29,6 +23,7 @@ class TextClassifier(Model):
                  verbose_metrics: False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None,
+                 loss: Optional[dict] = None,
                  ) -> None:
         super(TextClassifier, self).__init__(vocab, regularizer)
 
@@ -36,18 +31,39 @@ class TextClassifier(Model):
         self.num_classes = self.vocab.get_vocab_size("labels")
         self.text_encoder = text_encoder
         self.classifier_feedforward = classifier_feedforward
-        self.prediction_layer = torch.nn.Linear(self.classifier_feedforward.get_output_dim()  , self.num_classes)
+        self.prediction_layer = torch.nn.Linear(self.classifier_feedforward.get_output_dim(), self.num_classes)
+        self.pool = lambda text, mask: util.get_final_encoder_states(text, mask, bidirectional=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
-
-        self.verbose_metrics = verbose_metrics
-
         for i in range(self.num_classes):
             self.label_f1_metrics[vocab.get_token_from_index(index=i, namespace="labels")] = F1Measure(positive_label=i)
-        self.loss = torch.nn.CrossEntropyLoss()
+        self.verbose_metrics = verbose_metrics
 
-        self.pool = lambda text, mask: util.get_final_encoder_states(text, mask, bidirectional=True)
+        if loss is None:
+            self.loss = torch.nn.CrossEntropyLoss()
+        else:
+            alpha = loss.get('alpha')
+            gamma = loss.get('gamma')
+            weight = loss.get('weight')
+            if alpha is not None:
+                alpha = float(alpha)
+            if gamma is not None:
+                gamma = float(gamma)
+            if weight is not None:
+                weight = torch.tensor([1.0, float(weight)])
+            if loss.get('type') == 'CrossEntropyLoss':
+                self.loss = torch.nn.CrossEntropyLoss(weight=weight)
+            elif loss.get('type') == 'BinaryFocalLoss':
+                self.loss = BinaryFocalLoss(alpha=alpha, gamma=gamma)
+            elif loss.get('type') == 'FocalLoss':
+                self.loss = FocalLoss(alpha=alpha, gamma=gamma)
+            elif loss.get('type') == 'MultiLabelMarginLoss':
+                self.loss = torch.nn.MultiLabelMarginLoss()
+            elif loss.get('type') == 'MultiLabelSoftMarginLoss':
+                self.loss = torch.nn.MultiLabelSoftMarginLoss(weight)
+            else:
+                raise ValueError(f'Unexpected loss "{loss}"')
 
         initializer(self)
 
@@ -55,7 +71,7 @@ class TextClassifier(Model):
     def forward(self,
                 text: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
-                metadata:  List[Dict[str, Any]] = None) -> Dict[str, torch.Tensor]:
+                metadata: List[Dict[str, Any]] = None) -> Dict[str, torch.Tensor]:
         """
         Parameters
         ----------

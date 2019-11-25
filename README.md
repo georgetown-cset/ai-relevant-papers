@@ -1,20 +1,92 @@
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/named-entity-recognition-bc5cdr)](https://paperswithcode.com/sota/named-entity-recognition-bc5cdr?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/relation-extraction-chemprot)](https://paperswithcode.com/sota/relation-extraction-chemprot?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/participant-intervention-comparison-outcome)](https://paperswithcode.com/sota/participant-intervention-comparison-outcome?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/named-entity-recognition-ncbi-disease)](https://paperswithcode.com/sota/named-entity-recognition-ncbi-disease?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/sentence-classification-paper-field)](https://paperswithcode.com/sota/sentence-classification-paper-field?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/citation-intent-classification-scicite)](https://paperswithcode.com/sota/citation-intent-classification-scicite?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/sentence-classification-sciencecite)](https://paperswithcode.com/sota/sentence-classification-sciencecite?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/relation-extraction-scierc)](https://paperswithcode.com/sota/relation-extraction-scierc?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/named-entity-recognition-scierc)](https://paperswithcode.com/sota/named-entity-recognition-scierc?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/citation-intent-classification-acl-arc)](https://paperswithcode.com/sota/citation-intent-classification-acl-arc?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/sentence-classification-acl-arc)](https://paperswithcode.com/sota/sentence-classification-acl-arc?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/dependency-parsing-genia-las)](https://paperswithcode.com/sota/dependency-parsing-genia-las?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/dependency-parsing-genia-uas)](https://paperswithcode.com/sota/dependency-parsing-genia-uas?p=scibert-pretrained-contextualized-embeddings)    
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/named-entity-recognition-jnlpba)](https://paperswithcode.com/sota/named-entity-recognition-jnlpba?p=scibert-pretrained-contextualized-embeddings)   
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/sentence-classification-pubmed-20k-rct)](https://paperswithcode.com/sota/sentence-classification-pubmed-20k-rct?p=scibert-pretrained-contextualized-embeddings)  
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/scibert-pretrained-contextualized-embeddings/sentence-classification-scicite)](https://paperswithcode.com/sota/sentence-classification-scicite?p=scibert-pretrained-contextualized-embeddings)
+## Overview
 
+This repo contains code for a [CSET](https://cset.georgetown.edu/) project that uses `SciBERT` to identify the universe of research publications relating to the application and development of artificial intelligence.
+`SciBERT` is a project of [the Allen Institute for Artificial Intelligence (AI2)](http://www.allenai.org) described in [SciBERT: Pretrained Language Model for Scientific Text](https://arxiv.org/abs/1903.10676).
+
+## Python
+
+Create a new Python 3.7 environment, e.g. via Conda
+
+```
+conda create -n scibert python=3.7
+conda activate scibert
+```
+
+Clone the repo *with its submodules*:
+
+```
+git clone --recurse-submodules -j2 https://github.com/georgetown-cset/ai-relevant-papers.git
+```
+
+Set up the environment. 
+
+```
+cd ai-relevant-papers
+pip install -r replication-requirements.txt
+```
+
+SciBERT [requires a fork of allennlp](https://github.com/allenai/scibert/issues/65). Be sure to use it:
+
+```
+pip install -e git://github.com/ibeltagy/allennlp@fp16_and_others#egg=allennlp
+```
+
+If training models on GPUs, install NVIDIA's [apex](https://github.com/NVIDIA/apex).
+
+```
+cd apex
+pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+```
+
+It's possible to install apex on a system without a GPU: `pip install -v --no-cache-dir ./`.
+You probably don't want to do this.
+In prediction, availability of apex will cause allennlp or scibert to try to load CUDA extensions, which will fail with `ModuleNotFoundError: No module named 'fused_layer_norm_cuda'`.
+
+## Model training
+
+We're using these driver and Cuda versions:
+
+```
+$ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2019 NVIDIA Corporation
+Built on Fri_Feb__8_19:08:17_PST_2019
+Cuda compilation tools, release 10.1, V10.1.105
+
+$ cat /proc/driver/nvidia/version
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  418.67  Sat Apr  6 03:07:24 CDT 2019
+GCC version:  gcc version 6.3.0 20170516 (Debian 6.3.0-18+deb9u1)
+```
+
+Refer to the arXiv directory for code and documentation of preprocessing.
+An example of training data is included in `data/train/arxiv-20200213-ai-binary-10pct-sample`.
+To use the example data, decompress it.
+
+```
+cd data/train/arxiv-20200213-ai-binary-10pct-sample && gzip -dk *.gz
+```
+
+Download the pretrained SciBERT model.
+
+```
+./scripts/download-pretrained-scibert.sh
+```
+
+To train a model, pass the name of the directory under `data/train` containing the training data, like
+
+```
+scripts/train-baseline.sh arxiv-20200213-ai-binary-10pct-sample
+```
+
+If training a model halts unexpectedly, you can resume from the most recent checkpoint like so:
+
+```
+export MODEL_DIR="example_dir"
+python -m allennlp.run train $MODEL_DIR/config.json -s $MODEL_DIR --include-package scibert --recover 
+```
+
+The remainder of this readme is from the SciBERT repo at the time of our fork.
+See the [SciBERT repo](https://github.com/allenai/scibert) for the latest. 
 
 # <p align=center>`SciBERT`</p>
 `SciBERT` is a `BERT` model trained on scientific text.

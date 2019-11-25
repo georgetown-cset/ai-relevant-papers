@@ -1,3 +1,6 @@
--e git://github.com/ibeltagy/allennlp@fp16_and_others#egg=allennlp
+pytorch-pretrained-bert
+pytorch-transformers
+allennlp
 jsonlines
-lxml
+pandas
+apache-beam[gcp]

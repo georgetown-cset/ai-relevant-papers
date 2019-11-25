@@ -1,2 +1,2 @@
 import scibert.dataset_readers.classification_dataset_reader
-import scibert.models.text_classifier
+import scibert.models.multilabel_text_classifier

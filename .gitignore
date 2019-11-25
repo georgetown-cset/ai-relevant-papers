@@ -108,3 +108,9 @@ venv.bak/
 
 # other
 .DS_Store
+
+models/
+data/
+demo_predictions.jsonl
+.tmux*
+.direnv

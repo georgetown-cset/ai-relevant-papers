@@ -11,6 +11,7 @@ from allennlp.training.metrics import CategoricalAccuracy, F1Measure
 from overrides import overrides
 from scibert.models.text_classifier import TextClassifier
 
+from pytorch_toolbelt.losses import BinaryFocalLoss, FocalLoss
 
 @Model.register("bert_text_classifier")
 class BertTextClassifier(TextClassifier):
@@ -28,6 +29,7 @@ class BertTextClassifier(TextClassifier):
                  dropout: float = 0.2,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None,
+                 loss: Optional[dict] = None,
                  ) -> None:
         super(TextClassifier, self).__init__(vocab, regularizer)
 
@@ -43,7 +45,20 @@ class BertTextClassifier(TextClassifier):
 
         for i in range(self.num_classes):
             self.label_f1_metrics[vocab.get_token_from_index(index=i, namespace="labels")] = F1Measure(positive_label=i)
-        self.loss = torch.nn.CrossEntropyLoss()
+
+        if loss is None or loss.get('type') == 'CrossEntropyLoss':
+            self.loss = torch.nn.CrossEntropyLoss()
+        elif loss.get('type') == 'BinaryFocalLoss':
+            self.loss = BinaryFocalLoss(alpha=loss.get('alpha'), gamma=loss.get('gamma'))
+        elif loss.get('type') == 'FocalLoss':
+            self.loss = FocalLoss(alpha=loss.get('alpha'), gamma=loss.get('gamma'))
+        elif loss.get('type') == 'MultiLabelMarginLoss':
+            self.loss = torch.nn.MultiLabelMarginLoss()
+        elif loss.get('type') == 'MultiLabelSoftMarginLoss':
+            self.loss = torch.nn.MultiLabelSoftMarginLoss(
+                weight=torch.tensor(loss.get('weight')) if 'weight' in loss else None)
+        else:
+            raise ValueError(f'Unexpected loss "{loss}"')
 
         initializer(self)
 
