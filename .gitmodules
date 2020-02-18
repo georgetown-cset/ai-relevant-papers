@@ -1,3 +1,6 @@
 [submodule "apex"]
 	path = apex
 	url = https://github.com/NVIDIA/apex
+[submodule "arxiv"]
+    path = arxiv
+    url = https://github.com/georgetown-cset/arxiv-corpus
